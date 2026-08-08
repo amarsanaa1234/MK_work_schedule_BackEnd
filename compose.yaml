@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: .
+    container_name: spring-boot
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/demo_schedule
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1234Aa123
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

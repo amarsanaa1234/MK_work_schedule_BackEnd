@@ -1,0 +1,87 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.example:mk_backEnd >-----------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:4.1.0:run (default-cli) > test-compile @ mk_backEnd >>>
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ mk_backEnd ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ mk_backEnd ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 47 source files with javac [debug parameters release 21] to target\classes
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by lombok.permit.Permit
+WARNING: Please consider reporting this to the maintainers of class lombok.permit.Permit
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[INFO] /C:/Users/amars/Downloads/mk_work_schedule/mk_backEnd/mk_backEnd/src/main/java/com/example/mk_backEnd/security/JwtAuthenticationFilter.java: C:\Users\amars\Downloads\mk_work_schedule\mk_backEnd\mk_backEnd\src\main\java\com\example\mk_backEnd\security\JwtAuthenticationFilter.java uses or overrides a deprecated API.
+[INFO] /C:/Users/amars/Downloads/mk_work_schedule/mk_backEnd/mk_backEnd/src/main/java/com/example/mk_backEnd/security/JwtAuthenticationFilter.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ mk_backEnd ---
+[INFO] skip non existing resourceDirectory C:\Users\amars\Downloads\mk_work_schedule\mk_backEnd\mk_backEnd\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ mk_backEnd ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] 
+[INFO] <<< spring-boot:4.1.0:run (default-cli) < test-compile @ mk_backEnd <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:4.1.0:run (default-cli) @ mk_backEnd ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.0)
+
+2026-08-08T23:59:05.907+10:00  INFO 39852 --- [mk_backEnd] [           main] c.e.mk_backEnd.MkBackEndApplication      : Starting MkBackEndApplication using Java 25.0.2 with PID 39852 (C:\Users\amars\Downloads\mk_work_schedule\mk_backEnd\mk_backEnd\target\classes started by amars in C:\Users\amars\Downloads\mk_work_schedule\mk_backEnd\mk_backEnd)
+2026-08-08T23:59:05.910+10:00  INFO 39852 --- [mk_backEnd] [           main] c.e.mk_backEnd.MkBackEndApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-08-08T23:59:06.512+10:00  INFO 39852 --- [mk_backEnd] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-08T23:59:06.572+10:00  INFO 39852 --- [mk_backEnd] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 53 ms. Found 8 JPA repository interfaces.
+2026-08-08T23:59:06.982+10:00  INFO 39852 --- [mk_backEnd] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-08-08T23:59:06.995+10:00  INFO 39852 --- [mk_backEnd] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-08T23:59:06.996+10:00  INFO 39852 --- [mk_backEnd] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.22]
+2026-08-08T23:59:07.058+10:00  INFO 39852 --- [mk_backEnd] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1089 ms
+2026-08-08T23:59:07.199+10:00  INFO 39852 --- [mk_backEnd] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-08T23:59:07.239+10:00  INFO 39852 --- [mk_backEnd] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.1.Final
+2026-08-08T23:59:07.573+10:00  INFO 39852 --- [mk_backEnd] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-08T23:59:07.599+10:00  INFO 39852 --- [mk_backEnd] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-08T23:59:07.883+10:00  INFO 39852 --- [mk_backEnd] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@4654e373
+2026-08-08T23:59:07.884+10:00  INFO 39852 --- [mk_backEnd] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-08T23:59:07.950+10:00  INFO 39852 --- [mk_backEnd] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:3306/demo_schedule]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.0.46
+	Default catalog/schema: demo_schedule/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-08T23:59:08.976+10:00  INFO 39852 --- [mk_backEnd] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-08T23:59:09.047+10:00  INFO 39852 --- [mk_backEnd] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-08T23:59:09.108+10:00  INFO 39852 --- [mk_backEnd] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-08T23:59:09.365+10:00  WARN 39852 --- [mk_backEnd] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-08T23:59:09.423+10:00  WARN 39852 --- [mk_backEnd] [           main] .s.a.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: cc4dcd46-f751-4039-8a3e-986eaaa871b6
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-08-08T23:59:09.429+10:00  INFO 39852 --- [mk_backEnd] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-08-08T23:59:09.751+10:00  INFO 39852 --- [mk_backEnd] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-08-08T23:59:09.756+10:00  INFO 39852 --- [mk_backEnd] [           main] c.e.mk_backEnd.MkBackEndApplication      : Started MkBackEndApplication in 4.172 seconds (process running for 4.497)
+2026-08-09T00:18:44.387+10:00  INFO 39852 --- [mk_backEnd] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-09T00:18:44.387+10:00  INFO 39852 --- [mk_backEnd] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-09T00:18:44.389+10:00  INFO 39852 --- [mk_backEnd] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
