@@ -1,12 +1,13 @@
 package com.example.mk_backEnd.service.impl;
 
-import com.example.mk_backEnd.domain.Admin;
 import com.example.mk_backEnd.domain.Employee;
 import com.example.mk_backEnd.domain.User;
+import com.example.mk_backEnd.domain.Workspace;
 import com.example.mk_backEnd.dto.RegisterRequest;
 import com.example.mk_backEnd.exception.BadRequestException;
 import com.example.mk_backEnd.exception.ResourceNotFoundException;
 import com.example.mk_backEnd.repository.UserRepository;
+import com.example.mk_backEnd.repository.WorkspaceRepository;
 import com.example.mk_backEnd.service.ActivityLogService;
 import com.example.mk_backEnd.service.AuthService;
 import com.example.mk_backEnd.util.PasswordUtil;
@@ -16,10 +17,13 @@ import org.springframework.stereotype.Service;
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
+    private final WorkspaceRepository workspaceRepository;
     private final ActivityLogService activityLogService;
 
-    public AuthServiceImpl(UserRepository userRepository, ActivityLogService activityLogService) {
+    public AuthServiceImpl(UserRepository userRepository, WorkspaceRepository workspaceRepository,
+                            ActivityLogService activityLogService) {
         this.userRepository = userRepository;
+        this.workspaceRepository = workspaceRepository;
         this.activityLogService = activityLogService;
     }
 
@@ -29,16 +33,15 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Хэрэглэгчийн нэр бүртгэлтэй байна: " + request.getUsername());
         }
 
-        User user = switch (request.getRole().toUpperCase()) {
-            case "ADMIN" -> new Admin();
-            case "EMPLOYEE" -> new Employee();
-            default -> throw new BadRequestException("Тодорхойгүй эрх: " + request.getRole());
-        };
+        Workspace workspace = workspaceRepository.findByOrganizationId(request.getOrganizationId().toUpperCase())
+                .orElseThrow(() -> new BadRequestException("Байгууллагын ID олдсонгүй: " + request.getOrganizationId()));
 
+        User user = new Employee();
         user.setUsername(request.getUsername());
         user.setPasswordHash(PasswordUtil.hash(request.getPassword()));
         user.setFullName(request.getFullName());
         user.setPhone(request.getPhone());
+        user.setWorkspace(workspace);
 
         if (request.getAddressLine() != null && !request.getAddressLine().isBlank()) {
             var address = new com.example.mk_backEnd.domain.Address();

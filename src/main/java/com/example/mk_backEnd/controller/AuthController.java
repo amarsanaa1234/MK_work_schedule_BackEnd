@@ -24,8 +24,13 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
+        User user = authService.register(request);
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), "EMPLOYEE");
+        String organizationId = user.getWorkspace().getOrganizationId();
+        LoginResponse response = new LoginResponse(
+                true, user.getId(), "Employee", user.getFullName(), token, organizationId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
@@ -34,7 +39,8 @@ public class AuthController {
         String userType = user.getClass().getSimpleName();
         String role = userType.equalsIgnoreCase("Admin") ? "ADMIN" : "EMPLOYEE";
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), role);
-        return ResponseEntity.ok(new LoginResponse(true, user.getId(), userType, user.getFullName(), token));
+        String organizationId = user.getWorkspace().getOrganizationId();
+        return ResponseEntity.ok(new LoginResponse(true, user.getId(), userType, user.getFullName(), token, organizationId));
     }
 
     @PostMapping("/logout/{userId}")

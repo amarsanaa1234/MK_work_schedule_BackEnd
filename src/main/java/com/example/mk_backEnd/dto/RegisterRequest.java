@@ -20,7 +20,7 @@ public class RegisterRequest {
     private String phone;
 
     @NotBlank
-    private String role; // "ADMIN" эсвэл "EMPLOYEE"
+    private String organizationId;
 
     private String addressLine;
 

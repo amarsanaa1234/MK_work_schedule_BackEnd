@@ -12,4 +12,5 @@ public class LoginResponse {
     private String userType;
     private String fullName;
     private String token;
+    private String organizationId;
 }
