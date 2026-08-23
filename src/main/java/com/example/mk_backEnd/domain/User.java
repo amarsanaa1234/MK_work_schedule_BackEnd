@@ -33,6 +33,9 @@ public abstract class User {
 
     private String phone;
 
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "address_id")
     private Address address;

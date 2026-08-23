@@ -3,6 +3,7 @@ package com.example.mk_backEnd.dto;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
@@ -27,4 +28,6 @@ public class RegisterRequest {
     private double latitude;
 
     private double longitude;
+
+    private MultipartFile photo;
 }

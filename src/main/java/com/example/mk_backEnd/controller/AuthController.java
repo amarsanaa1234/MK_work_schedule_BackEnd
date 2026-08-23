@@ -23,13 +23,22 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
+    @PostMapping(value = "/register", consumes = "multipart/form-data")
+    public ResponseEntity<LoginResponse> register(@Valid @ModelAttribute RegisterRequest request) {
         User user = authService.register(request);
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), "EMPLOYEE");
         String organizationId = user.getWorkspace().getOrganizationId();
         LoginResponse response = new LoginResponse(
-                true, user.getId(), "Employee", user.getFullName(), token, organizationId);
+                true,
+                user.getId(),
+                "Employee",
+                user.getFullName(),
+                token,
+                organizationId,
+                user.getPhotoUrl(),
+                user.getWorkspace().getIndustry(),
+                user.getWorkspace().getAddress()
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -40,7 +49,17 @@ public class AuthController {
         String role = userType.equalsIgnoreCase("Admin") ? "ADMIN" : "EMPLOYEE";
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), role);
         String organizationId = user.getWorkspace().getOrganizationId();
-        return ResponseEntity.ok(new LoginResponse(true, user.getId(), userType, user.getFullName(), token, organizationId));
+        return ResponseEntity.ok(new LoginResponse(
+                true,
+                user.getId(),
+                userType,
+                user.getFullName(),
+                token,
+                organizationId,
+                user.getPhotoUrl(),
+                user.getWorkspace().getIndustry(),
+                user.getWorkspace().getAddress()
+        ));
     }
 
     @PostMapping("/logout/{userId}")

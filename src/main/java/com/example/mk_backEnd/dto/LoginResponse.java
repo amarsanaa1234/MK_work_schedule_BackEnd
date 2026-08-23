@@ -1,5 +1,6 @@
 package com.example.mk_backEnd.dto;
 
+import com.example.mk_backEnd.domain.Address;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -13,4 +14,7 @@ public class LoginResponse {
     private String fullName;
     private String token;
     private String organizationId;
+    private String photoUrl;
+    private String industry;
+    private String address;
 }

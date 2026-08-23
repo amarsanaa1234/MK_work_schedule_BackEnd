@@ -24,15 +24,24 @@ public class WorkspaceController {
         this.jwtUtil = jwtUtil;
     }
 
-    @PostMapping
-    public ResponseEntity<LoginResponse> createWorkspace(@Valid @RequestBody CreateWorkspaceRequest request) {
+    @PostMapping(consumes = "multipart/form-data")
+    public ResponseEntity<LoginResponse> createWorkspace(@Valid @ModelAttribute CreateWorkspaceRequest request) {
         WorkspaceService.WorkspaceAndAdmin result = workspaceService.createWorkspace(request);
         Admin admin = result.admin();
         Workspace workspace = result.workspace();
 
         String token = jwtUtil.generateToken(admin.getId(), admin.getUsername(), "ADMIN");
         LoginResponse response = new LoginResponse(
-                true, admin.getId(), "Admin", admin.getFullName(), token, workspace.getOrganizationId());
+                true,
+                admin.getId(),
+                "Admin",
+                admin.getFullName(),
+                token,
+                workspace.getOrganizationId(),
+                admin.getPhotoUrl(),
+                admin.getWorkspace().getIndustry(),
+                admin.getWorkspace().getAddress()
+        );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

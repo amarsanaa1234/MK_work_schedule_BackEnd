@@ -10,6 +10,7 @@ import com.example.mk_backEnd.repository.UserRepository;
 import com.example.mk_backEnd.repository.WorkspaceRepository;
 import com.example.mk_backEnd.service.ActivityLogService;
 import com.example.mk_backEnd.service.AuthService;
+import com.example.mk_backEnd.service.FileStorageService;
 import com.example.mk_backEnd.util.PasswordUtil;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +20,14 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final ActivityLogService activityLogService;
+    private final FileStorageService fileStorageService;
 
     public AuthServiceImpl(UserRepository userRepository, WorkspaceRepository workspaceRepository,
-                            ActivityLogService activityLogService) {
+                            ActivityLogService activityLogService, FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.workspaceRepository = workspaceRepository;
         this.activityLogService = activityLogService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -49,6 +52,10 @@ public class AuthServiceImpl implements AuthService {
             address.setLatitude(request.getLatitude());
             address.setLongitude(request.getLongitude());
             user.setAddress(address);
+        }
+
+        if (request.getPhoto() != null && !request.getPhoto().isEmpty()) {
+            user.setPhotoUrl(fileStorageService.store(request.getPhoto()));
         }
 
         return userRepository.save(user);

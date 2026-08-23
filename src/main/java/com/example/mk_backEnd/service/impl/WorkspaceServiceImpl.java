@@ -7,6 +7,7 @@ import com.example.mk_backEnd.exception.BadRequestException;
 import com.example.mk_backEnd.exception.ResourceNotFoundException;
 import com.example.mk_backEnd.repository.UserRepository;
 import com.example.mk_backEnd.repository.WorkspaceRepository;
+import com.example.mk_backEnd.service.FileStorageService;
 import com.example.mk_backEnd.service.WorkspaceService;
 import com.example.mk_backEnd.util.OrganizationIdGenerator;
 import com.example.mk_backEnd.util.PasswordUtil;
@@ -19,12 +20,15 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final UserRepository userRepository;
     private final OrganizationIdGenerator organizationIdGenerator;
+    private final FileStorageService fileStorageService;
 
     public WorkspaceServiceImpl(WorkspaceRepository workspaceRepository, UserRepository userRepository,
-                                 OrganizationIdGenerator organizationIdGenerator) {
+                                 OrganizationIdGenerator organizationIdGenerator,
+                                 FileStorageService fileStorageService) {
         this.workspaceRepository = workspaceRepository;
         this.userRepository = userRepository;
         this.organizationIdGenerator = organizationIdGenerator;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -47,6 +51,11 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         admin.setPasswordHash(PasswordUtil.hash(request.getAdminPassword()));
         admin.setFullName(request.getAdminName());
         admin.setWorkspace(workspace);
+
+        if (request.getPhoto() != null && !request.getPhoto().isEmpty()) {
+            admin.setPhotoUrl(fileStorageService.store(request.getPhoto()));
+        }
+
         Admin savedAdmin = (Admin) userRepository.save(admin);
 
         return new WorkspaceAndAdmin(workspace, savedAdmin);
