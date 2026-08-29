@@ -66,4 +66,11 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         return workspaceRepository.findByOrganizationId(organizationId.toUpperCase())
                 .orElseThrow(() -> new ResourceNotFoundException("Байгууллагын ID олдсонгүй: " + organizationId));
     }
+
+    @Override
+    public Workspace findByUserId(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Хэрэглэгч олдсонгүй: " + userId))
+                .getWorkspace();
+    }
 }

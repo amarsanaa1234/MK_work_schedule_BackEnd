@@ -12,4 +12,6 @@ public interface WorkspaceService {
     WorkspaceAndAdmin createWorkspace(CreateWorkspaceRequest request);
 
     Workspace findByOrganizationId(String organizationId);
+
+    Workspace findByUserId(String userId);
 }
