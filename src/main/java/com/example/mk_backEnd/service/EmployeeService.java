@@ -3,6 +3,7 @@ package com.example.mk_backEnd.service;
 import com.example.mk_backEnd.domain.Address;
 import com.example.mk_backEnd.domain.Assignment;
 import com.example.mk_backEnd.domain.JobAd;
+import com.example.mk_backEnd.dto.EmployeeSummaryResponse;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,4 +17,6 @@ public interface EmployeeService {
     double distanceFromHome(String employeeId, String jobAdId);
 
     List<Assignment> viewSchedule(String employeeId, LocalDate from, LocalDate to);
+
+    List<EmployeeSummaryResponse> getAllEmployees(String workspaceId);
 }

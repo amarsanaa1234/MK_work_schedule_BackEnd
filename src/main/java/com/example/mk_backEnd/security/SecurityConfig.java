@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/workspaces/me").authenticated()
+                        .requestMatchers("/api/workspaces/me", "/api/workspaces/getEmployees").authenticated()
                         .requestMatchers("/api/workspaces/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/admins/**").hasAuthority("ROLE_ADMIN")

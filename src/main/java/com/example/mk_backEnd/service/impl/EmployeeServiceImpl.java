@@ -4,6 +4,7 @@ import com.example.mk_backEnd.domain.Address;
 import com.example.mk_backEnd.domain.Assignment;
 import com.example.mk_backEnd.domain.Employee;
 import com.example.mk_backEnd.domain.JobAd;
+import com.example.mk_backEnd.dto.EmployeeSummaryResponse;
 import com.example.mk_backEnd.exception.BadRequestException;
 import com.example.mk_backEnd.exception.ResourceNotFoundException;
 import com.example.mk_backEnd.repository.AssignmentRepository;
@@ -62,6 +63,14 @@ public class EmployeeServiceImpl implements EmployeeService {
     public List<Assignment> viewSchedule(String employeeId, LocalDate from, LocalDate to) {
         findEmployee(employeeId);
         return assignmentRepository.findByEmployeeIdAndJobAd_WorkDateBetween(employeeId, from, to);
+    }
+
+    @Override
+    public List<EmployeeSummaryResponse> getAllEmployees(String workspaceId) {
+        return employeeRepository.findByWorkspaceId(workspaceId).stream()
+                .map(e -> new EmployeeSummaryResponse(
+                        e.getId(), e.getFullName(), "Employee", e.getPhone(), e.getPhotoUrl()))
+                .toList();
     }
 
     private Employee findEmployee(String employeeId) {
