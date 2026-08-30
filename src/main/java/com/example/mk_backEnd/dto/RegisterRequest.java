@@ -20,6 +20,8 @@ public class RegisterRequest {
 
     private String phone;
 
+    private String abn;
+
     @NotBlank
     private String organizationId;
 

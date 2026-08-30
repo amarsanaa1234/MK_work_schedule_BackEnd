@@ -50,6 +50,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         admin.setUsername(request.getAdminEmail());
         admin.setPasswordHash(PasswordUtil.hash(request.getAdminPassword()));
         admin.setFullName(request.getAdminName());
+        admin.setPhone(request.getPhone());
         admin.setWorkspace(workspace);
 
         if (request.getPhoto() != null && !request.getPhoto().isEmpty()) {

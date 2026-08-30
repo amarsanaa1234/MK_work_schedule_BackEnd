@@ -44,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPasswordHash(PasswordUtil.hash(request.getPassword()));
         user.setFullName(request.getFullName());
         user.setPhone(request.getPhone());
+        user.setAbn(request.getAbn());
         user.setWorkspace(workspace);
 
         if (request.getAddressLine() != null && !request.getAddressLine().isBlank()) {

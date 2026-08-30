@@ -33,6 +33,8 @@ public abstract class User {
 
     private String phone;
 
+    private String abn;
+
     @Column(name = "photo_url")
     private String photoUrl;
 

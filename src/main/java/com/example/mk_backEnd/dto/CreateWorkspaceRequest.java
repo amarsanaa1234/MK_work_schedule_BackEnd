@@ -24,6 +24,8 @@ public class CreateWorkspaceRequest {
     @NotBlank
     private String adminEmail;
 
+    private String phone;
+
     @NotBlank
     private String adminPassword;
 
