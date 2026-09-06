@@ -1,10 +1,8 @@
 package com.example.mk_backEnd.controller;
 
 import com.example.mk_backEnd.domain.Assignment;
-import com.example.mk_backEnd.domain.JobAd;
 import com.example.mk_backEnd.domain.WorkHourEntry;
 import com.example.mk_backEnd.dto.AssignEmployeeRequest;
-import com.example.mk_backEnd.dto.CreateJobAdRequest;
 import com.example.mk_backEnd.dto.RecordWorkedHoursRequest;
 import com.example.mk_backEnd.service.AdminService;
 import jakarta.validation.Valid;
@@ -32,14 +30,6 @@ public class AdminController {
         if (!authentication.getName().equals(adminId)) {
             throw new AccessDeniedException("Өөр админы эрхээр хандах боломжгүй");
         }
-    }
-
-    @PostMapping("/job-ads")
-    public ResponseEntity<JobAd> createJobAd(Authentication authentication,
-                                              @PathVariable String adminId,
-                                              @Valid @RequestBody CreateJobAdRequest request) {
-        verifySelf(authentication, adminId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createJobAd(adminId, request));
     }
 
     @PostMapping("/job-ads/{jobAdId}/assignments")

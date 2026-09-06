@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,12 +29,26 @@ public class JobAd {
 
     private LocalDate workDate;
 
+    private LocalTime startTime;
+
+    @Column(name = "job_type")
+    private String jobType;
+
+    private String truck;
+
+    @Column(length = 1000)
+    private String notes;
+
     @Enumerated(EnumType.STRING)
     private JobStatus status = JobStatus.OPEN;
 
     @ManyToOne
     @JoinColumn(name = "admin_id")
     private Admin createdBy;
+
+    @ManyToOne
+    @JoinColumn(name = "leader_id")
+    private Employee leader;
 
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "address_id")
@@ -42,6 +57,10 @@ public class JobAd {
     @JsonIgnore
     @OneToMany(mappedBy = "jobAd", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Assignment> assignments = new ArrayList<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "jobAd", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<JobAdCrew> crew = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

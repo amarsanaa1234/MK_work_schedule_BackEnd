@@ -2,6 +2,7 @@ package com.example.mk_backEnd.domain;
 
 public enum JobStatus {
 
+    DRAFT("НООРОГ"),
     OPEN("НЭЭЛТТЭЙ"),
     CLOSED("ДУУССАН"),
     CANCELLED("ЦУЦЛАГДСАН");

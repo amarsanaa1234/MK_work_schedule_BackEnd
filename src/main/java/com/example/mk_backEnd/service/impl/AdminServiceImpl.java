@@ -19,6 +19,7 @@ public class AdminServiceImpl implements AdminService {
     private final AdminRepository adminRepository;
     private final EmployeeRepository employeeRepository;
     private final JobAdRepository jobAdRepository;
+    private final JobAdCrewRepository jobAdCrewRepository;
     private final AssignmentRepository assignmentRepository;
     private final WorkHourEntryRepository workHourEntryRepository;
     private final ActivityLogService activityLogService;
@@ -26,12 +27,14 @@ public class AdminServiceImpl implements AdminService {
     public AdminServiceImpl(AdminRepository adminRepository,
                              EmployeeRepository employeeRepository,
                              JobAdRepository jobAdRepository,
+                             JobAdCrewRepository jobAdCrewRepository,
                              AssignmentRepository assignmentRepository,
                              WorkHourEntryRepository workHourEntryRepository,
                              ActivityLogService activityLogService) {
         this.adminRepository = adminRepository;
         this.employeeRepository = employeeRepository;
         this.jobAdRepository = jobAdRepository;
+        this.jobAdCrewRepository = jobAdCrewRepository;
         this.assignmentRepository = assignmentRepository;
         this.workHourEntryRepository = workHourEntryRepository;
         this.activityLogService = activityLogService;
@@ -42,21 +45,42 @@ public class AdminServiceImpl implements AdminService {
     public JobAd createJobAd(String adminId, CreateJobAdRequest request) {
         Admin admin = findAdmin(adminId);
 
+        List<String> crewIds = request.getCrewIds() == null ? List.of() : request.getCrewIds();
+
         Address location = new Address();
         location.setAddressLine(request.getAddressLine());
         location.setLatitude(request.getLatitude());
         location.setLongitude(request.getLongitude());
 
         JobAd jobAd = new JobAd();
-        jobAd.setTitle(request.getTitle());
+        String title = request.getTitle();
+        jobAd.setTitle((title == null || title.isBlank())
+                ? (request.getJobType() == null ? "Job" : request.getJobType()) + " — " + request.getAddressLine()
+                : title);
         jobAd.setDescription(request.getDescription());
-        jobAd.setRequiredCount(request.getRequiredCount());
+        jobAd.setRequiredCount(Math.max(request.getRequiredCount(), crewIds.size()));
         jobAd.setWorkDate(request.getWorkDate());
-        jobAd.setStatus(JobStatus.OPEN);
+        jobAd.setStartTime(request.getStartTime());
+        jobAd.setJobType(request.getJobType());
+        jobAd.setTruck(request.getTruck());
+        jobAd.setNotes(request.getNotes());
+        jobAd.setStatus(request.isDraft() ? JobStatus.DRAFT : JobStatus.OPEN);
         jobAd.setLocation(location);
         jobAd.setCreatedBy(admin);
 
+        if (request.getLeaderId() != null && !request.getLeaderId().isBlank()) {
+            jobAd.setLeader(findEmployee(request.getLeaderId()));
+        }
+
         JobAd saved = jobAdRepository.save(jobAd);
+
+        for (String employeeId : crewIds) {
+            JobAdCrew crew = new JobAdCrew();
+            crew.setJobAd(saved);
+            crew.setEmployee(findEmployee(employeeId));
+            jobAdCrewRepository.save(crew);
+        }
+
         activityLogService.log(adminId, "CREATE_JOB_AD:" + saved.getId(), null);
         return saved;
     }

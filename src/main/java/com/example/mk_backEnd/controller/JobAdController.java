@@ -1,8 +1,13 @@
 package com.example.mk_backEnd.controller;
 
 import com.example.mk_backEnd.domain.JobAd;
+import com.example.mk_backEnd.dto.CreateJobAdRequest;
+import com.example.mk_backEnd.service.AdminService;
 import com.example.mk_backEnd.service.JobAdService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,9 +17,18 @@ import java.util.List;
 public class JobAdController {
 
     private final JobAdService jobAdService;
+    private final AdminService adminService;
 
-    public JobAdController(JobAdService jobAdService) {
+    public JobAdController(JobAdService jobAdService, AdminService adminService) {
         this.jobAdService = jobAdService;
+        this.adminService = adminService;
+    }
+
+    @PostMapping
+    public ResponseEntity<JobAd> create(Authentication authentication,
+                                         @Valid @RequestBody CreateJobAdRequest request) {
+        String adminId = authentication.getName();
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createJobAd(adminId, request));
     }
 
     @GetMapping
