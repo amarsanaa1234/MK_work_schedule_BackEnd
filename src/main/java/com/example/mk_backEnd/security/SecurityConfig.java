@@ -35,7 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/workspaces/me", "/api/workspaces/getEmployees").authenticated()
                         .requestMatchers("/api/workspaces/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/job-ads").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/job-ads/**").permitAll()
                         .requestMatchers("/api/admins/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/employees/**").hasAuthority("ROLE_EMPLOYEE")
                         .anyRequest().authenticated()

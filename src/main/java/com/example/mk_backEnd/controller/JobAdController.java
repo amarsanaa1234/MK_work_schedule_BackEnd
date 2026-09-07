@@ -24,7 +24,7 @@ public class JobAdController {
         this.adminService = adminService;
     }
 
-    @PostMapping
+    @PostMapping("/job-create-post")
     public ResponseEntity<JobAd> create(Authentication authentication,
                                          @Valid @RequestBody CreateJobAdRequest request) {
         String adminId = authentication.getName();
