@@ -10,4 +10,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByUsername(String username);
 
     boolean existsByUsername(String username);
+
+    boolean existsByIdAndRemovedAtIsNotNull(String id);
+
+    long countByWorkspaceIdAndCreatedAtLessThan(String workspaceId, java.time.LocalDateTime createdAt);
 }

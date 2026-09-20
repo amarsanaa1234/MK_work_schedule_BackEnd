@@ -6,6 +6,7 @@ import com.example.mk_backEnd.dto.AssignEmployeeRequest;
 import com.example.mk_backEnd.dto.CreateJobAdRequest;
 import com.example.mk_backEnd.dto.EmployeeDetailResponse;
 import com.example.mk_backEnd.dto.EmployeeHoursResponse;
+import com.example.mk_backEnd.dto.EmployeeOverviewResponse;
 import com.example.mk_backEnd.dto.JobAdSummaryResponse;
 import com.example.mk_backEnd.dto.RecordWorkedHoursRequest;
 import com.example.mk_backEnd.dto.RecordJobHoursRequest;
@@ -121,6 +122,47 @@ public class AdminController {
             @Valid @RequestBody UpdatePayRateRequest request) {
         verifySelf(authentication, adminId);
         adminService.updatePayRate(adminId, employeeId, request.getPayRate());
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/employees/overview")
+    public ResponseEntity<List<EmployeeOverviewResponse>> employeeOverview(
+            Authentication authentication,
+            @PathVariable String adminId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        verifySelf(authentication, adminId);
+        return ResponseEntity.ok(adminService.getEmployeeOverview(adminId, from, to));
+    }
+
+    @PutMapping("/employees/{employeeId}/paid")
+    public ResponseEntity<Void> markPeriodPaid(
+            Authentication authentication,
+            @PathVariable String adminId,
+            @PathVariable String employeeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        verifySelf(authentication, adminId);
+        adminService.markPeriodPaid(adminId, employeeId, from, to);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/employees/{employeeId}/paid")
+    public ResponseEntity<Void> unmarkPeriodPaid(
+            Authentication authentication,
+            @PathVariable String adminId,
+            @PathVariable String employeeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from) {
+        verifySelf(authentication, adminId);
+        adminService.unmarkPeriodPaid(adminId, employeeId, from);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/employees/{employeeId}")
+    public ResponseEntity<Void> removeEmployee(
+            Authentication authentication, @PathVariable String adminId, @PathVariable String employeeId) {
+        verifySelf(authentication, adminId);
+        adminService.removeEmployee(adminId, employeeId);
         return ResponseEntity.noContent().build();
     }
 

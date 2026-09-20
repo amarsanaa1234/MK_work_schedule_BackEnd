@@ -3,9 +3,11 @@ package com.example.mk_backEnd.controller;
 import com.example.mk_backEnd.domain.Address;
 import com.example.mk_backEnd.domain.Assignment;
 import com.example.mk_backEnd.domain.JobAd;
+import com.example.mk_backEnd.dto.EmployeeOverviewResponse;
 import com.example.mk_backEnd.dto.JobAdSummaryResponse;
 import com.example.mk_backEnd.dto.NotificationResponse;
 import com.example.mk_backEnd.dto.WorkHourEntrySummaryResponse;
+import com.example.mk_backEnd.service.AdminService;
 import com.example.mk_backEnd.service.EmployeeService;
 import com.example.mk_backEnd.service.NotificationService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,10 +26,13 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
     private final NotificationService notificationService;
+    private final AdminService adminService;
 
-    public EmployeeController(EmployeeService employeeService, NotificationService notificationService) {
+    public EmployeeController(EmployeeService employeeService, NotificationService notificationService,
+                              AdminService adminService) {
         this.employeeService = employeeService;
         this.notificationService = notificationService;
+        this.adminService = adminService;
     }
 
     private void verifySelf(Authentication authentication, String employeeId) {
@@ -86,6 +91,16 @@ public class EmployeeController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         verifySelf(authentication, employeeId);
         return ResponseEntity.ok(employeeService.getMyWorkHours(employeeId, from, to));
+    }
+
+    @GetMapping("/overview")
+    public ResponseEntity<EmployeeOverviewResponse> myOverview(
+            Authentication authentication,
+            @PathVariable String employeeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        verifySelf(authentication, employeeId);
+        return ResponseEntity.ok(adminService.getMyOverview(employeeId, from, to));
     }
 
     @GetMapping("/notifications")

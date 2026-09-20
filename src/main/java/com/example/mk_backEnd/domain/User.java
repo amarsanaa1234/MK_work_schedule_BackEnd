@@ -36,6 +36,10 @@ public abstract class User {
 
     private String abn;
 
+    /** Set when an admin removes this person from the workspace; their hours and pay history are kept. */
+    @Column(name = "removed_at")
+    private LocalDateTime removedAt;
+
     @Column(name = "photo_url")
     private String photoUrl;
 

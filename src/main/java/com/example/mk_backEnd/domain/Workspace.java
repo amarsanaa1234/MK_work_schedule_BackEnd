@@ -32,6 +32,20 @@ public class Workspace {
 
     private String phone;
 
+    /** FREE, PRO or BUSINESS as chosen; null on older workspaces means FREE. Text, so new tiers need no schema change. */
+    @Column(name = "plan", length = 20)
+    private String plan;
+
+    /** MONTHLY or YEARLY. */
+    @Column(name = "billing_interval", length = 20)
+    private String billingInterval;
+
+    @Column(name = "trial_started_on")
+    private java.time.LocalDate trialStartedOn;
+
+    @Column(name = "trial_ends_on")
+    private java.time.LocalDate trialEndsOn;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

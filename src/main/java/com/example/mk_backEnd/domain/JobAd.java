@@ -35,7 +35,8 @@ public class JobAd {
     @Column(name = "job_type")
     private String jobType;
 
-    private String truck;
+    @Column(name = "induction_url", length = 1000)
+    private String inductionUrl;
 
     @Column(length = 1000)
     private String notes;

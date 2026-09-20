@@ -6,6 +6,8 @@ import com.example.mk_backEnd.dto.EmployeeDetailResponse;
 import com.example.mk_backEnd.dto.EmployeeSummaryResponse;
 import com.example.mk_backEnd.dto.JobAdSummaryResponse;
 import com.example.mk_backEnd.dto.EmployeeHoursResponse;
+import com.example.mk_backEnd.dto.EmployeeOverviewResponse;
+import com.example.mk_backEnd.dto.ShiftResponse;
 import com.example.mk_backEnd.dto.TimesheetDayResponse;
 import com.example.mk_backEnd.dto.TimesheetSummaryResponse;
 import com.example.mk_backEnd.dto.WorkHourEntrySummaryResponse;
@@ -32,6 +34,8 @@ public class AdminServiceImpl implements AdminService {
     private final WorkHourEntryRepository workHourEntryRepository;
     private final ActivityLogService activityLogService;
     private final NotificationService notificationService;
+    private final PayPeriodPaymentRepository payPeriodPaymentRepository;
+    private final UserRepository userRepository;
 
     public AdminServiceImpl(AdminRepository adminRepository,
                              EmployeeRepository employeeRepository,
@@ -40,7 +44,9 @@ public class AdminServiceImpl implements AdminService {
                              AssignmentRepository assignmentRepository,
                              WorkHourEntryRepository workHourEntryRepository,
                              ActivityLogService activityLogService,
-                             NotificationService notificationService) {
+                             NotificationService notificationService,
+                             PayPeriodPaymentRepository payPeriodPaymentRepository,
+                             UserRepository userRepository) {
         this.adminRepository = adminRepository;
         this.employeeRepository = employeeRepository;
         this.jobAdRepository = jobAdRepository;
@@ -49,6 +55,8 @@ public class AdminServiceImpl implements AdminService {
         this.workHourEntryRepository = workHourEntryRepository;
         this.activityLogService = activityLogService;
         this.notificationService = notificationService;
+        this.payPeriodPaymentRepository = payPeriodPaymentRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -73,7 +81,7 @@ public class AdminServiceImpl implements AdminService {
         jobAd.setWorkDate(request.getWorkDate());
         jobAd.setStartTime(request.getStartTime());
         jobAd.setJobType(request.getJobType());
-        jobAd.setTruck(request.getTruck());
+        jobAd.setInductionUrl(request.getInductionUrl());
         jobAd.setNotes(request.getNotes());
         jobAd.setStatus(request.isDraft() ? JobStatus.DRAFT : JobStatus.OPEN);
         jobAd.setLocation(location);
@@ -124,7 +132,7 @@ public class AdminServiceImpl implements AdminService {
         jobAd.setWorkDate(request.getWorkDate());
         jobAd.setStartTime(request.getStartTime());
         jobAd.setJobType(request.getJobType());
-        jobAd.setTruck(request.getTruck());
+        jobAd.setInductionUrl(request.getInductionUrl());
         jobAd.setNotes(request.getNotes());
         jobAd.setStatus(request.isDraft() ? JobStatus.DRAFT : JobStatus.OPEN);
         jobAd.setLocation(location);
@@ -319,7 +327,7 @@ public class AdminServiceImpl implements AdminService {
                 jobAd.getId(),
                 jobAd.getTitle(),
                 jobAd.getJobType(),
-                jobAd.getTruck(),
+                jobAd.getInductionUrl(),
                 jobAd.getNotes(),
                 jobAd.getStatus().name(),
                 jobAd.getWorkDate(),
@@ -339,7 +347,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<EmployeeDetailResponse> listEmployeesWithRates(String adminId) {
         Admin admin = findAdmin(adminId);
-        return employeeRepository.findByWorkspaceId(admin.getWorkspace().getId()).stream()
+        return employeeRepository.findByWorkspaceIdAndRemovedAtIsNull(admin.getWorkspace().getId()).stream()
                 .map(e -> new EmployeeDetailResponse(
                         e.getId(), e.getFullName(), e.getPhone(), e.getPhotoUrl(), e.getPayRate()))
                 .toList();
@@ -358,54 +366,254 @@ public class AdminServiceImpl implements AdminService {
         activityLogService.log(adminId, "UPDATE_PAY_RATE:" + employeeId, null);
     }
 
-    @Override
-    public List<TimesheetSummaryResponse> getTimesheets(String adminId, LocalDate from, LocalDate to) {
-        Admin admin = findAdmin(adminId);
-        List<Employee> employees = employeeRepository.findByWorkspaceId(admin.getWorkspace().getId());
+    /** One job an employee was on, with the hours logged against it (null if none yet). */
+    private record Shift(LocalDate date, JobAd jobAd, Double hours) {}
 
-        return employees.stream()
-                .map(employee -> buildTimesheetSummary(employee, from, to))
-                .toList();
+    /**
+     * Everything an employee did or is rostered for within [from, to]. Jobs are assigned via the
+     * flat crew list (or the leader field) at post/edit time - the same source of truth an
+     * employee's own feed uses; Assignment rows only exist once hours have been logged, so they
+     * can't tell us who was rostered but not yet logged. Drafts and cancelled jobs aren't rosters.
+     */
+    private List<Shift> shiftsFor(String employeeId, LocalDate from, LocalDate to) {
+        java.util.Map<String, JobAd> rostered = new java.util.LinkedHashMap<>();
+        jobAdRepository.findByLeaderId(employeeId).forEach(j -> rostered.put(j.getId(), j));
+        jobAdCrewRepository.findByEmployeeId(employeeId)
+                .forEach(c -> rostered.put(c.getJobAd().getId(), c.getJobAd()));
+
+        List<Shift> shifts = new java.util.ArrayList<>();
+        java.util.Set<String> logged = new java.util.HashSet<>();
+        for (WorkHourEntry entry : workHourEntryRepository
+                .findByAssignment_Employee_IdAndWorkDateBetweenOrderByWorkDateDesc(employeeId, from, to)) {
+            JobAd job = entry.getAssignment().getJobAd();
+            logged.add(job.getId());
+            shifts.add(new Shift(entry.getWorkDate(), job, entry.getHoursWorked()));
+        }
+        for (JobAd job : rostered.values()) {
+            boolean inRange = !job.getWorkDate().isBefore(from) && !job.getWorkDate().isAfter(to);
+            boolean live = job.getStatus() != JobStatus.DRAFT && job.getStatus() != JobStatus.CANCELLED;
+            if (inRange && live && !logged.contains(job.getId())) {
+                shifts.add(new Shift(job.getWorkDate(), job, null));
+            }
+        }
+        shifts.sort(java.util.Comparator.comparing(Shift::date));
+        return shifts;
     }
 
-    private TimesheetSummaryResponse buildTimesheetSummary(Employee employee, LocalDate from, LocalDate to) {
-        // Jobs are assigned via the flat crew list (or the leader field) at post/edit time —
-        // same source of truth an employee's own feed uses. Assignment rows only exist once
-        // hours have been logged, so they can't tell us which days someone was actually
-        // rostered on vs. genuinely had the day off.
-        java.util.Set<LocalDate> assignedDates = new java.util.HashSet<>();
-        jobAdRepository.findByLeaderId(employee.getId()).forEach(jobAd -> assignedDates.add(jobAd.getWorkDate()));
-        jobAdCrewRepository.findByEmployeeId(employee.getId())
-                .forEach(crew -> assignedDates.add(crew.getJobAd().getWorkDate()));
+    /** WORKED (hours logged), MISSING (a past job with no hours) or UPCOMING (today or later). */
+    private static String shiftStatus(Shift shift, LocalDate today) {
+        if (shift.hours() != null) {
+            return "WORKED";
+        }
+        return shift.date().isBefore(today) ? "MISSING" : "UPCOMING";
+    }
 
-        java.util.Map<LocalDate, Double> hoursByDate = new java.util.HashMap<>();
-        workHourEntryRepository
-                .findByAssignment_Employee_IdAndWorkDateBetweenOrderByWorkDateDesc(employee.getId(), from, to)
-                .forEach(entry -> hoursByDate.put(entry.getWorkDate(), entry.getHoursWorked()));
-
+    /** One entry per calendar day in [from, to]: MISSING > WORKED > UPCOMING > OFF (no job that day). */
+    private List<TimesheetDayResponse> dayStrip(List<Shift> shifts, LocalDate from, LocalDate to, LocalDate today) {
         List<TimesheetDayResponse> days = new java.util.ArrayList<>();
-        double totalHours = 0;
-        int loggedDays = 0;
-        int missingLogs = 0;
         for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
-            Double hours = hoursByDate.get(date);
+            final LocalDate day = date;
+            List<Shift> onDay = shifts.stream().filter(s -> s.date().equals(day)).toList();
+            Double hours = onDay.stream().map(Shift::hours).filter(java.util.Objects::nonNull)
+                    .reduce(Double::sum).orElse(null);
             String status;
-            if (hours != null) {
-                status = "WORKED";
-                totalHours += hours;
-                loggedDays++;
-            } else if (assignedDates.contains(date)) {
+            if (onDay.stream().anyMatch(s -> "MISSING".equals(shiftStatus(s, today)))) {
                 status = "MISSING";
-                missingLogs++;
+            } else if (hours != null) {
+                status = "WORKED";
+            } else if (!onDay.isEmpty()) {
+                status = "UPCOMING";
             } else {
                 status = "OFF";
             }
-            days.add(new TimesheetDayResponse(date, status, hours));
+            days.add(new TimesheetDayResponse(day, status, hours));
+        }
+        return days;
+    }
+
+    private static double totalHoursOf(List<Shift> shifts) {
+        return shifts.stream().filter(s -> s.hours() != null).mapToDouble(Shift::hours).sum();
+    }
+
+    @Override
+    public List<TimesheetSummaryResponse> getTimesheets(String adminId, LocalDate from, LocalDate to) {
+        Admin admin = findAdmin(adminId);
+        LocalDate today = LocalDate.now();
+
+        return employeeRepository.findByWorkspaceIdAndRemovedAtIsNull(admin.getWorkspace().getId()).stream()
+                .map(employee -> {
+                    List<Shift> shifts = shiftsFor(employee.getId(), from, to);
+                    List<TimesheetDayResponse> days = dayStrip(shifts, from, to, today);
+                    int loggedDays = (int) days.stream().filter(d -> d.getHoursWorked() != null).count();
+                    int missingLogs = (int) days.stream().filter(d -> "MISSING".equals(d.getStatus())).count();
+                    return new TimesheetSummaryResponse(
+                            employee.getId(), employee.getFullName(), employee.getPhotoUrl(),
+                            totalHoursOf(shifts), loggedDays, missingLogs, days);
+                })
+                .toList();
+    }
+
+    /**
+     * A short prefix from the business name: an all-caps first word of up to three letters is
+     * used as is ("MK Removals" gives "MK"), otherwise the initials of the first two words
+     * ("Southern Cross Movers" gives "SC").
+     */
+    private static String codePrefix(String businessName) {
+        String[] words = String.valueOf(businessName).trim().split("\\s+");
+        if (words.length > 0 && words[0].length() >= 2 && words[0].length() <= 3
+                && words[0].equals(words[0].toUpperCase()) && words[0].chars().allMatch(Character::isLetterOrDigit)) {
+            return words[0];
+        }
+        StringBuilder initials = new StringBuilder();
+        for (String word : words) {
+            if (!word.isEmpty() && Character.isLetterOrDigit(word.charAt(0)) && initials.length() < 2) {
+                initials.append(Character.toUpperCase(word.charAt(0)));
+            }
+        }
+        return initials.length() == 0 ? "ID" : initials.toString();
+    }
+
+    @Override
+    public List<EmployeeOverviewResponse> getEmployeeOverview(String adminId, LocalDate from, LocalDate to) {
+        Admin admin = findAdmin(adminId);
+        String workspaceId = admin.getWorkspace().getId();
+        LocalDate today = LocalDate.now();
+        java.time.LocalTime now = java.time.LocalTime.now();
+        List<EmployeeOverviewResponse> result = new java.util.ArrayList<>();
+
+        adminRepository.findByWorkspaceId(workspaceId).stream()
+                .sorted(java.util.Comparator.comparing(a -> String.valueOf(a.getFullName()).toLowerCase()))
+                .forEach(a -> result.add(new EmployeeOverviewResponse(
+                        a.getId(), a.getFullName(), "Admin", a.getUsername(), a.getPhone(), a.getPhotoUrl(),
+                        a.getCreatedAt(), null, 0, 0, null, 0, false, false, null, List.of(), List.of(), null)));
+
+        employeeRepository.findByWorkspaceIdAndRemovedAtIsNull(workspaceId).stream()
+                .sorted(java.util.Comparator.comparing(e -> String.valueOf(e.getFullName()).toLowerCase()))
+                .forEach(e -> result.add(overviewOf(e, admin.getWorkspace(), from, to, today, now)));
+
+        return result;
+    }
+
+    @Override
+    public EmployeeOverviewResponse getMyOverview(String employeeId, LocalDate from, LocalDate to) {
+        Employee employee = findEmployee(employeeId);
+        if (employee.getRemovedAt() != null) {
+            throw new ResourceNotFoundException("Ажилтан олдсонгүй: " + employeeId);
+        }
+        return overviewOf(employee, employee.getWorkspace(), from, to, LocalDate.now(), java.time.LocalTime.now());
+    }
+
+    /** One crew member's hours, pay, paid status and day-by-day breakdown for [from, to]. */
+    private EmployeeOverviewResponse overviewOf(Employee e, Workspace workspace, LocalDate from, LocalDate to,
+                                                LocalDate today, java.time.LocalTime now) {
+        List<Shift> shifts = shiftsFor(e.getId(), from, to);
+        List<TimesheetDayResponse> days = dayStrip(shifts, from, to, today);
+        double totalHours = totalHoursOf(shifts);
+        // Owed = what the hours are worth minus whatever was already marked paid; if more
+        // hours get logged after a period was marked paid, the difference shows as owed again.
+        double gross = e.getPayRate() == null
+                ? 0
+                : Math.round(totalHours * e.getPayRate() * 100.0) / 100.0;
+        java.util.Optional<PayPeriodPayment> payment =
+                payPeriodPaymentRepository.findByEmployeeIdAndPeriodStart(e.getId(), from);
+        double owed = Math.max(0, Math.round((gross - payment.map(PayPeriodPayment::getAmount).orElse(0.0)) * 100.0) / 100.0);
+        boolean paid = payment.isPresent() && owed == 0;
+        List<TimesheetDayResponse> missing = days.stream()
+                .filter(d -> "MISSING".equals(d.getStatus())).toList();
+
+        // "On site" = rostered today, already started, and not yet logged off with hours.
+        java.time.LocalTime onSiteSince = shiftsFor(e.getId(), today, today).stream()
+                .filter(s -> s.hours() == null)
+                .map(s -> s.jobAd().getStartTime())
+                .filter(t -> t != null && !t.isAfter(now))
+                .min(java.util.Comparator.naturalOrder())
+                .orElse(null);
+
+        List<ShiftResponse> shiftResponses = shifts.stream()
+                .map(s -> new ShiftResponse(
+                        s.date(), s.jobAd().getId(),
+                        s.jobAd().getLocation() == null ? null : s.jobAd().getLocation().getAddressLine(),
+                        s.hours(), shiftStatus(s, today), s.jobAd().getJobType(),
+                        s.jobAd().getLeader() != null && s.jobAd().getLeader().getId().equals(e.getId())))
+                .toList();
+
+        return new EmployeeOverviewResponse(
+                e.getId(), e.getFullName(), "Crew", e.getUsername(), e.getPhone(), e.getPhotoUrl(),
+                e.getCreatedAt(), e.getPayRate(), totalHours, missing.size(),
+                missing.isEmpty() ? null : missing.get(0).getDate(),
+                owed, paid, onSiteSince != null,
+                onSiteSince == null ? null : onSiteSince.toString().substring(0, 5),
+                days, shiftResponses, codePrefix(workspace.getBusinessName()) + "-"
+                        + String.format("%04d", userRepository.countByWorkspaceIdAndCreatedAtLessThan(
+                                workspace.getId(), e.getCreatedAt()) + 1));
+    }
+
+    @Override
+    @Transactional
+    public void markPeriodPaid(String adminId, String employeeId, LocalDate from, LocalDate to) {
+        Admin admin = findAdmin(adminId);
+        Employee employee = findEmployee(employeeId);
+        if (!employee.getWorkspace().getId().equals(admin.getWorkspace().getId())) {
+            throw new BadRequestException("Энэ ажилтан таны байгууллагад харьяалагдахгүй байна.");
+        }
+        double amount = employee.getPayRate() == null
+                ? 0
+                : Math.round(totalHoursOf(shiftsFor(employeeId, from, to)) * employee.getPayRate() * 100.0) / 100.0;
+
+        // Re-marking after more hours were logged brings the paid amount up to date.
+        PayPeriodPayment payment = payPeriodPaymentRepository.findByEmployeeIdAndPeriodStart(employeeId, from)
+                .orElseGet(PayPeriodPayment::new);
+        payment.setEmployee(employee);
+        payment.setPeriodStart(from);
+        payment.setPeriodEnd(to);
+        payment.setAmount(amount);
+        payment.setPaidBy(admin);
+        payPeriodPaymentRepository.save(payment);
+        activityLogService.log(adminId, "MARK_PERIOD_PAID:" + employeeId + "@" + from, null);
+    }
+
+    @Override
+    @Transactional
+    public void unmarkPeriodPaid(String adminId, String employeeId, LocalDate from) {
+        Admin admin = findAdmin(adminId);
+        Employee employee = findEmployee(employeeId);
+        if (!employee.getWorkspace().getId().equals(admin.getWorkspace().getId())) {
+            throw new BadRequestException("Энэ ажилтан таны байгууллагад харьяалагдахгүй байна.");
+        }
+        payPeriodPaymentRepository.findByEmployeeIdAndPeriodStart(employeeId, from)
+                .ifPresent(payPeriodPaymentRepository::delete);
+        activityLogService.log(adminId, "UNMARK_PERIOD_PAID:" + employeeId + "@" + from, null);
+    }
+
+    @Override
+    @Transactional
+    public void removeEmployee(String adminId, String employeeId) {
+        Admin admin = findAdmin(adminId);
+        Employee employee = findEmployee(employeeId);
+        if (!employee.getWorkspace().getId().equals(admin.getWorkspace().getId())) {
+            throw new BadRequestException("Энэ ажилтан таны байгууллагад харьяалагдахгүй байна.");
+        }
+        if (employee.getRemovedAt() != null) {
+            return;
         }
 
-        return new TimesheetSummaryResponse(
-                employee.getId(), employee.getFullName(), employee.getPhotoUrl(),
-                totalHours, loggedDays, missingLogs, days);
+        // Take them off jobs that have not happened yet; past jobs, hours and payments stay as history.
+        LocalDate today = LocalDate.now();
+        jobAdCrewRepository.findByEmployeeId(employeeId).stream()
+                .filter(crew -> !crew.getJobAd().getWorkDate().isBefore(today))
+                .forEach(jobAdCrewRepository::delete);
+        jobAdRepository.findByLeaderId(employeeId).stream()
+                .filter(job -> !job.getWorkDate().isBefore(today))
+                .forEach(job -> {
+                    job.setLeader(null);
+                    jobAdRepository.save(job);
+                });
+
+        // Free up the email so the person can be invited again later.
+        employee.setUsername(employee.getUsername() + "#removed-" + employee.getId().substring(0, 8));
+        employee.setRemovedAt(java.time.LocalDateTime.now());
+        employeeRepository.save(employee);
+        activityLogService.log(adminId, "REMOVE_EMPLOYEE:" + employeeId, null);
     }
 
     private Admin findAdmin(String adminId) {

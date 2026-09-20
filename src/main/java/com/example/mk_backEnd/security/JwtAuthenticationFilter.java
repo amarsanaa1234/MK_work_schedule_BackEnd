@@ -1,5 +1,6 @@
 package com.example.mk_backEnd.security;
 
+import com.example.mk_backEnd.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -20,9 +21,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -37,6 +40,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtil.parseClaims(token);
                 String userId = claims.getSubject();
                 String role = claims.get("role", String.class);
+
+                // Someone removed from the workspace loses access straight away, not when the token expires.
+                if (userRepository.existsByIdAndRemovedAtIsNotNull(userId)) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                 var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);

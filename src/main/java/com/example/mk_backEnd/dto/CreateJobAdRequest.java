@@ -33,7 +33,7 @@ public class CreateJobAdRequest {
 
     private String jobType;
 
-    private String truck;
+    private String inductionUrl;
 
     private String notes;
 

@@ -11,6 +11,7 @@ import com.example.mk_backEnd.repository.AdminRepository;
 import com.example.mk_backEnd.repository.EmployeeRepository;
 import com.example.mk_backEnd.security.JwtUtil;
 import com.example.mk_backEnd.service.EmployeeService;
+import com.example.mk_backEnd.service.PlanService;
 import com.example.mk_backEnd.service.WorkspaceService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,14 +30,17 @@ public class WorkspaceController {
     private final JwtUtil jwtUtil;
     private final EmployeeRepository employeeRepository;
     private final AdminRepository adminRepository;
+    private final PlanService planService;
 
     public WorkspaceController(WorkspaceService workspaceService, EmployeeService employeeService, JwtUtil jwtUtil,
-                                EmployeeRepository employeeRepository, AdminRepository adminRepository) {
+                                EmployeeRepository employeeRepository, AdminRepository adminRepository,
+                                PlanService planService) {
         this.workspaceService = workspaceService;
         this.employeeService = employeeService;
         this.jwtUtil = jwtUtil;
         this.employeeRepository = employeeRepository;
         this.adminRepository = adminRepository;
+        this.planService = planService;
     }
 
     @PostMapping(consumes = "multipart/form-data")
@@ -65,7 +69,8 @@ public class WorkspaceController {
     public ResponseEntity<WorkspaceLookupResponse> lookup(@PathVariable String organizationId) {
         Workspace workspace = workspaceService.findByOrganizationId(organizationId);
         return ResponseEntity.ok(new WorkspaceLookupResponse(
-                workspace.getOrganizationId(), workspace.getBusinessName(), workspace.getAddress()));
+                workspace.getOrganizationId(), workspace.getBusinessName(), workspace.getAddress(),
+                planService.isFull(workspace), planService.effectiveTier(workspace).getMaxPeople()));
     }
 
     /**
@@ -82,7 +87,7 @@ public class WorkspaceController {
                 workspace.getIndustry(),
                 workspace.getAddress(),
                 workspace.getPhone(),
-                employeeRepository.countByWorkspaceId(workspace.getId()),
+                employeeRepository.countByWorkspaceIdAndRemovedAtIsNull(workspace.getId()),
                 adminRepository.countByWorkspaceId(workspace.getId())
         ));
     }

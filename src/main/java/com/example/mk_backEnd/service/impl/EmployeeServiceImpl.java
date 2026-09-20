@@ -75,7 +75,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 jobAd.getId(),
                 jobAd.getTitle(),
                 jobAd.getJobType(),
-                jobAd.getTruck(),
+                jobAd.getInductionUrl(),
                 jobAd.getNotes(),
                 jobAd.getStatus().name(),
                 jobAd.getWorkDate(),
@@ -134,7 +134,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public List<EmployeeSummaryResponse> getAllEmployees(String workspaceId) {
-        return employeeRepository.findByWorkspaceId(workspaceId).stream()
+        return employeeRepository.findByWorkspaceIdAndRemovedAtIsNull(workspaceId).stream()
                 .map(e -> new EmployeeSummaryResponse(
                         e.getId(), e.getFullName(), "Employee", e.getPhone(), e.getPhotoUrl()))
                 .toList();

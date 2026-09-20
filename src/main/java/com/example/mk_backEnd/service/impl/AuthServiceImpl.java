@@ -11,6 +11,7 @@ import com.example.mk_backEnd.repository.WorkspaceRepository;
 import com.example.mk_backEnd.service.ActivityLogService;
 import com.example.mk_backEnd.service.AuthService;
 import com.example.mk_backEnd.service.FileStorageService;
+import com.example.mk_backEnd.service.PlanService;
 import com.example.mk_backEnd.util.PasswordUtil;
 import org.springframework.stereotype.Service;
 
@@ -21,13 +22,16 @@ public class AuthServiceImpl implements AuthService {
     private final WorkspaceRepository workspaceRepository;
     private final ActivityLogService activityLogService;
     private final FileStorageService fileStorageService;
+    private final PlanService planService;
 
     public AuthServiceImpl(UserRepository userRepository, WorkspaceRepository workspaceRepository,
-                            ActivityLogService activityLogService, FileStorageService fileStorageService) {
+                            ActivityLogService activityLogService, FileStorageService fileStorageService,
+                            PlanService planService) {
         this.userRepository = userRepository;
         this.workspaceRepository = workspaceRepository;
         this.activityLogService = activityLogService;
         this.fileStorageService = fileStorageService;
+        this.planService = planService;
     }
 
     @Override
@@ -38,6 +42,12 @@ public class AuthServiceImpl implements AuthService {
 
         Workspace workspace = workspaceRepository.findByOrganizationId(request.getOrganizationId().toUpperCase())
                 .orElseThrow(() -> new BadRequestException("Байгууллагын ID олдсонгүй: " + request.getOrganizationId()));
+
+        if (planService.isFull(workspace)) {
+            throw new BadRequestException("This workspace is full: " + workspace.getBusinessName()
+                    + " has reached its " + planService.effectiveTier(workspace).getMaxPeople()
+                    + "-person limit. Ask your admin to upgrade, then try again.");
+        }
 
         User user = new Employee();
         user.setUsername(request.getUsername());

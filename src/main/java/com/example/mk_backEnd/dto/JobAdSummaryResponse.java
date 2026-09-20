@@ -21,7 +21,7 @@ public class JobAdSummaryResponse {
     private String id;
     private String title;
     private String jobType;
-    private String truck;
+    private String inductionUrl;
     private String notes;
     private String status;
     private LocalDate workDate;
