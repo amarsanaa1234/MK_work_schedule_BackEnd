@@ -13,4 +13,6 @@ public class WorkspaceProfileResponse {
     private String industry;
     private String address;
     private String phone;
+    private long crewCount;
+    private long adminCount;
 }

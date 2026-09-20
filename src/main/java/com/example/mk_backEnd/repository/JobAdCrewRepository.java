@@ -12,4 +12,6 @@ public interface JobAdCrewRepository extends JpaRepository<JobAdCrew, String> {
     List<JobAdCrew> findByEmployeeId(String employeeId);
 
     boolean existsByJobAdIdAndEmployeeId(String jobAdId, String employeeId);
+
+    void deleteByJobAdId(String jobAdId);
 }

@@ -7,6 +7,8 @@ import com.example.mk_backEnd.dto.EmployeeSummaryResponse;
 import com.example.mk_backEnd.dto.LoginResponse;
 import com.example.mk_backEnd.dto.WorkspaceLookupResponse;
 import com.example.mk_backEnd.dto.WorkspaceProfileResponse;
+import com.example.mk_backEnd.repository.AdminRepository;
+import com.example.mk_backEnd.repository.EmployeeRepository;
 import com.example.mk_backEnd.security.JwtUtil;
 import com.example.mk_backEnd.service.EmployeeService;
 import com.example.mk_backEnd.service.WorkspaceService;
@@ -25,11 +27,16 @@ public class WorkspaceController {
     private final WorkspaceService workspaceService;
     private final EmployeeService employeeService;
     private final JwtUtil jwtUtil;
+    private final EmployeeRepository employeeRepository;
+    private final AdminRepository adminRepository;
 
-    public WorkspaceController(WorkspaceService workspaceService, EmployeeService employeeService, JwtUtil jwtUtil) {
+    public WorkspaceController(WorkspaceService workspaceService, EmployeeService employeeService, JwtUtil jwtUtil,
+                                EmployeeRepository employeeRepository, AdminRepository adminRepository) {
         this.workspaceService = workspaceService;
         this.employeeService = employeeService;
         this.jwtUtil = jwtUtil;
+        this.employeeRepository = employeeRepository;
+        this.adminRepository = adminRepository;
     }
 
     @PostMapping(consumes = "multipart/form-data")
@@ -74,7 +81,9 @@ public class WorkspaceController {
                 workspace.getAbn(),
                 workspace.getIndustry(),
                 workspace.getAddress(),
-                workspace.getPhone()
+                workspace.getPhone(),
+                employeeRepository.countByWorkspaceId(workspace.getId()),
+                adminRepository.countByWorkspaceId(workspace.getId())
         ));
     }
 

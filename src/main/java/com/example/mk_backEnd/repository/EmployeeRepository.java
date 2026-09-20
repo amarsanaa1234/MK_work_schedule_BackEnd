@@ -10,4 +10,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
     // SINGLE_TABLE inheritance-ийн ачаар энэ query автоматаар зөвхөн
     // user_type='EMPLOYEE' мөрүүдийг л буцаана (Admin-ууд оролцохгүй).
     List<Employee> findByWorkspaceId(String workspaceId);
+
+    long countByWorkspaceId(String workspaceId);
 }

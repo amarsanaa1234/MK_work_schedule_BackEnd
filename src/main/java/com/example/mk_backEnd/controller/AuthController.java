@@ -46,7 +46,7 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = authService.login(request.getUsername(), request.getPassword());
         String userType = user.getClass().getSimpleName();
-        String role = userType.equalsIgnoreCase("Admin") ? "ORG" : "EMPLOYEE";
+        String role = userType.equalsIgnoreCase("Admin") ? "ADMIN" : "EMPLOYEE";
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), role);
         String organizationId = user.getWorkspace().getOrganizationId();
         return ResponseEntity.ok(new LoginResponse(
