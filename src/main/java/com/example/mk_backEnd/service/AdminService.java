@@ -58,6 +58,13 @@ public interface AdminService {
     /** Everyone in the admin's workspace with hours, pay and paid status for one pay period. */
     List<EmployeeOverviewResponse> getEmployeeOverview(String adminId, LocalDate from, LocalDate to);
 
+    /** What needs an admin's attention in one workspace for one pay period. */
+    record WorkspaceAttention(int unpaid, int missingLogs) {
+    }
+
+    /** Crew with money still owed, and missing hour logs, across a whole workspace for [from, to]. */
+    WorkspaceAttention attentionFor(com.example.mk_backEnd.domain.Workspace workspace, LocalDate from, LocalDate to);
+
     /**
      * The same hours/pay/day breakdown for one employee looking at themselves (their own
      * profile). Lives here because it shares all its logic with {@link #getEmployeeOverview}.

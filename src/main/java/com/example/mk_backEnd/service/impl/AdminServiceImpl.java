@@ -86,6 +86,9 @@ public class AdminServiceImpl implements AdminService {
         jobAd.setStatus(request.isDraft() ? JobStatus.DRAFT : JobStatus.OPEN);
         jobAd.setLocation(location);
         jobAd.setCreatedBy(admin);
+        // Tied to the workspace the admin has open right now, and it stays there even if they
+        // later open another of their workspaces.
+        jobAd.setWorkspace(admin.getWorkspace());
 
         if (request.getLeaderId() != null && !request.getLeaderId().isBlank()) {
             jobAd.setLeader(findEmployee(request.getLeaderId()));
@@ -112,7 +115,7 @@ public class AdminServiceImpl implements AdminService {
     public JobAdSummaryResponse updateJobAd(String adminId, String jobAdId, CreateJobAdRequest request) {
         Admin admin = findAdmin(adminId);
         JobAd jobAd = findJobAd(jobAdId);
-        if (!jobAd.getCreatedBy().getWorkspace().getId().equals(admin.getWorkspace().getId())) {
+        if (!jobWorkspaceId(jobAd).equals(admin.getWorkspace().getId())) {
             throw new BadRequestException("Энэ ажлын зар танай байгууллагад харьяалагдахгүй байна.");
         }
 
@@ -166,7 +169,7 @@ public class AdminServiceImpl implements AdminService {
     public List<EmployeeHoursResponse> getJobHours(String adminId, String jobAdId) {
         Admin admin = findAdmin(adminId);
         JobAd jobAd = findJobAd(jobAdId);
-        if (!jobAd.getCreatedBy().getWorkspace().getId().equals(admin.getWorkspace().getId())) {
+        if (!jobWorkspaceId(jobAd).equals(admin.getWorkspace().getId())) {
             throw new BadRequestException("Энэ ажлын зар танай байгууллагад харьяалагдахгүй байна.");
         }
 
@@ -312,9 +315,16 @@ public class AdminServiceImpl implements AdminService {
     public List<JobAdSummaryResponse> listJobAds(String adminId, LocalDate from, LocalDate to) {
         Admin admin = findAdmin(adminId);
         String workspaceId = admin.getWorkspace().getId();
-        return jobAdRepository.findByCreatedBy_Workspace_IdAndWorkDateBetween(workspaceId, from, to).stream()
+        return jobAdRepository.findForWorkspace(workspaceId, from, to).stream()
                 .map(this::toSummary)
                 .toList();
+    }
+
+    /** The workspace a job belongs to; jobs from before workspaces were recorded fall back to their creator's. */
+    private static String jobWorkspaceId(JobAd jobAd) {
+        return jobAd.getWorkspace() != null
+                ? jobAd.getWorkspace().getId()
+                : jobAd.getCreatedBy().getWorkspace().getId();
     }
 
     private JobAdSummaryResponse toSummary(JobAd jobAd) {
@@ -481,7 +491,7 @@ public class AdminServiceImpl implements AdminService {
         java.time.LocalTime now = java.time.LocalTime.now();
         List<EmployeeOverviewResponse> result = new java.util.ArrayList<>();
 
-        adminRepository.findByWorkspaceId(workspaceId).stream()
+        adminRepository.findMembers(workspaceId).stream()
                 .sorted(java.util.Comparator.comparing(a -> String.valueOf(a.getFullName()).toLowerCase()))
                 .forEach(a -> result.add(new EmployeeOverviewResponse(
                         a.getId(), a.getFullName(), "Admin", a.getUsername(), a.getPhone(), a.getPhotoUrl(),
@@ -492,6 +502,22 @@ public class AdminServiceImpl implements AdminService {
                 .forEach(e -> result.add(overviewOf(e, admin.getWorkspace(), from, to, today, now)));
 
         return result;
+    }
+
+    @Override
+    public WorkspaceAttention attentionFor(Workspace workspace, LocalDate from, LocalDate to) {
+        LocalDate today = LocalDate.now();
+        java.time.LocalTime now = java.time.LocalTime.now();
+        int unpaid = 0;
+        int missing = 0;
+        for (Employee e : employeeRepository.findByWorkspaceIdAndRemovedAtIsNull(workspace.getId())) {
+            EmployeeOverviewResponse overview = overviewOf(e, workspace, from, to, today, now);
+            if (overview.getOwed() > 0) {
+                unpaid++;
+            }
+            missing += overview.getMissingLogs();
+        }
+        return new WorkspaceAttention(unpaid, missing);
     }
 
     @Override

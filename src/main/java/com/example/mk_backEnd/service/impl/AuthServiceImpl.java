@@ -81,6 +81,15 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Хэрэглэгчийн нэр эсвэл нууц үг буруу байна.");
         }
 
+        if (user.getRemovedAt() != null) {
+            throw new BadRequestException("Таны эрх энэ байгууллагаас хасагдсан байна.");
+        }
+
+        if (!planService.seatAllowed(user)) {
+            throw new BadRequestException("Your workspace is over its plan's people limit, so your seat isn't "
+                    + "active. Ask your admin to upgrade or renew the plan, then try again.");
+        }
+
         activityLogService.log(user.getId(), "LOGIN", null);
         return user;
     }

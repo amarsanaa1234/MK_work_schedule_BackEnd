@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Called by Stripe's servers, not the app - verified by webhook signature, not a JWT.
+                        .requestMatchers("/api/stripe/webhook", "/api/stripe/return/**").permitAll()
                         .requestMatchers("/api/workspaces/me", "/api/workspaces/getEmployees").authenticated()
                         .requestMatchers("/api/workspaces/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
@@ -41,7 +43,6 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 

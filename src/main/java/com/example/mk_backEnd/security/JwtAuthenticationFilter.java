@@ -1,6 +1,8 @@
 package com.example.mk_backEnd.security;
 
+import com.example.mk_backEnd.domain.User;
 import com.example.mk_backEnd.repository.UserRepository;
+import com.example.mk_backEnd.service.PlanService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -22,10 +24,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final PlanService planService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserRepository userRepository) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserRepository userRepository, PlanService planService) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
+        this.planService = planService;
     }
 
     @Override
@@ -41,8 +45,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String userId = claims.getSubject();
                 String role = claims.get("role", String.class);
 
-                // Someone removed from the workspace loses access straight away, not when the token expires.
-                if (userRepository.existsByIdAndRemovedAtIsNotNull(userId)) {
+                User user = userRepository.findById(userId).orElse(null);
+
+                // Removed from the workspace, or their seat is no longer covered by the plan (over
+                // the people limit now that the workspace has fallen back to Free) - either way they
+                // lose access immediately, not when the token happens to expire. Because this is
+                // computed live off the current plan, paying again restores access with no separate
+                // "reactivate" step: the very next request just starts passing.
+                boolean blocked = user == null || user.getRemovedAt() != null || !planService.seatAllowed(user);
+                if (blocked) {
                     SecurityContextHolder.clearContext();
                     filterChain.doFilter(request, response);
                     return;

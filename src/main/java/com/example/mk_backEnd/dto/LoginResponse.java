@@ -1,6 +1,5 @@
 package com.example.mk_backEnd.dto;
 
-import com.example.mk_backEnd.domain.Address;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -17,4 +16,8 @@ public class LoginResponse {
     private String photoUrl;
     private String industry;
     private String address;
+    /** Name of the workspace the user is currently in (the active one, for admins with several). */
+    private String businessName;
+    /** How many workspaces this user can open - more than 1 only for Business owners. */
+    private int workspaceCount;
 }

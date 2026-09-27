@@ -9,7 +9,11 @@ public enum PlanTier {
 
     FREE(10, 1, 0, 0, false),
     PRO(30, 1, 19, 190, true),
-    BUSINESS(100, 5, 49, 490, true);
+    /**
+     * Unlimited people (Integer.MAX_VALUE is the "no limit" sentinel - see {@link #isUnlimitedPeople()});
+     * up to 5 workspaces under one owner.
+     */
+    BUSINESS(Integer.MAX_VALUE, 5, 49, 490, true);
 
     private final int maxPeople;
     private final int maxWorkspaces;
@@ -23,6 +27,10 @@ public enum PlanTier {
         this.monthlyPrice = monthlyPrice;
         this.yearlyPrice = yearlyPrice;
         this.multipleAdmins = multipleAdmins;
+    }
+
+    public boolean isUnlimitedPeople() {
+        return maxPeople == Integer.MAX_VALUE;
     }
 
     /** Null or blank (workspaces created before plans existed) means FREE. */

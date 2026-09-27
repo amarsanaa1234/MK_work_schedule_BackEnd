@@ -14,4 +14,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByIdAndRemovedAtIsNotNull(String id);
 
     long countByWorkspaceIdAndCreatedAtLessThan(String workspaceId, java.time.LocalDateTime createdAt);
+
+    /** This user's place in the workspace's join order (1-based), among people still active. */
+    long countByWorkspaceIdAndRemovedAtIsNullAndCreatedAtLessThanEqual(
+            String workspaceId, java.time.LocalDateTime createdAt);
 }

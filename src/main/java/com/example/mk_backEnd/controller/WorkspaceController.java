@@ -11,6 +11,7 @@ import com.example.mk_backEnd.repository.AdminRepository;
 import com.example.mk_backEnd.repository.EmployeeRepository;
 import com.example.mk_backEnd.security.JwtUtil;
 import com.example.mk_backEnd.service.EmployeeService;
+import com.example.mk_backEnd.service.LoginResponseFactory;
 import com.example.mk_backEnd.service.PlanService;
 import com.example.mk_backEnd.service.WorkspaceService;
 import jakarta.validation.Valid;
@@ -31,16 +32,18 @@ public class WorkspaceController {
     private final EmployeeRepository employeeRepository;
     private final AdminRepository adminRepository;
     private final PlanService planService;
+    private final LoginResponseFactory loginResponses;
 
     public WorkspaceController(WorkspaceService workspaceService, EmployeeService employeeService, JwtUtil jwtUtil,
                                 EmployeeRepository employeeRepository, AdminRepository adminRepository,
-                                PlanService planService) {
+                                PlanService planService, LoginResponseFactory loginResponses) {
         this.workspaceService = workspaceService;
         this.employeeService = employeeService;
         this.jwtUtil = jwtUtil;
         this.employeeRepository = employeeRepository;
         this.adminRepository = adminRepository;
         this.planService = planService;
+        this.loginResponses = loginResponses;
     }
 
     @PostMapping(consumes = "multipart/form-data")
@@ -50,19 +53,7 @@ public class WorkspaceController {
         Workspace workspace = result.workspace();
 
         String token = jwtUtil.generateToken(admin.getId(), admin.getUsername(), "ADMIN");
-        LoginResponse response = new LoginResponse(
-                true,
-                admin.getId(),
-                "Admin",
-                admin.getFullName(),
-                token,
-                workspace.getOrganizationId(),
-                admin.getPhotoUrl(),
-                admin.getWorkspace().getIndustry(),
-                admin.getWorkspace().getAddress()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(loginResponses.build(admin, "Admin", token));
     }
 
     @GetMapping("/{organizationId}")
@@ -88,7 +79,7 @@ public class WorkspaceController {
                 workspace.getAddress(),
                 workspace.getPhone(),
                 employeeRepository.countByWorkspaceIdAndRemovedAtIsNull(workspace.getId()),
-                adminRepository.countByWorkspaceId(workspace.getId())
+                adminRepository.countMembers(workspace.getId())
         ));
     }
 

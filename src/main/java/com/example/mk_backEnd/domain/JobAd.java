@@ -48,6 +48,15 @@ public class JobAd {
     @JoinColumn(name = "admin_id")
     private Admin createdBy;
 
+    /**
+     * The workspace this job belongs to, fixed when it is created. Deriving it from {@link #createdBy}
+     * would move the job along whenever its creator opens another of their workspaces. Null only on
+     * rows created before this column existed, until they are backfilled.
+     */
+    @ManyToOne
+    @JoinColumn(name = "workspace_id")
+    private Workspace workspace;
+
     @ManyToOne
     @JoinColumn(name = "leader_id")
     private Employee leader;

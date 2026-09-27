@@ -6,6 +6,7 @@ import com.example.mk_backEnd.dto.LoginResponse;
 import com.example.mk_backEnd.dto.RegisterRequest;
 import com.example.mk_backEnd.security.JwtUtil;
 import com.example.mk_backEnd.service.AuthService;
+import com.example.mk_backEnd.service.LoginResponseFactory;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,29 +18,19 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
+    private final LoginResponseFactory loginResponses;
 
-    public AuthController(AuthService authService, JwtUtil jwtUtil) {
+    public AuthController(AuthService authService, JwtUtil jwtUtil, LoginResponseFactory loginResponses) {
         this.authService = authService;
         this.jwtUtil = jwtUtil;
+        this.loginResponses = loginResponses;
     }
 
     @PostMapping(value = "/register", consumes = "multipart/form-data")
     public ResponseEntity<LoginResponse> register(@Valid @ModelAttribute RegisterRequest request) {
         User user = authService.register(request);
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), "EMPLOYEE");
-        String organizationId = user.getWorkspace().getOrganizationId();
-        LoginResponse response = new LoginResponse(
-                true,
-                user.getId(),
-                "Employee",
-                user.getFullName(),
-                token,
-                organizationId,
-                user.getPhotoUrl(),
-                user.getWorkspace().getIndustry(),
-                user.getWorkspace().getAddress()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(loginResponses.build(user, "Employee", token));
     }
 
     @PostMapping("/login")
@@ -48,18 +39,7 @@ public class AuthController {
         String userType = user.getClass().getSimpleName();
         String role = userType.equalsIgnoreCase("Admin") ? "ADMIN" : "EMPLOYEE";
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), role);
-        String organizationId = user.getWorkspace().getOrganizationId();
-        return ResponseEntity.ok(new LoginResponse(
-                true,
-                user.getId(),
-                userType,
-                user.getFullName(),
-                token,
-                organizationId,
-                user.getPhotoUrl(),
-                user.getWorkspace().getIndustry(),
-                user.getWorkspace().getAddress()
-        ));
+        return ResponseEntity.ok(loginResponses.build(user, userType, token));
     }
 
     @PostMapping("/logout/{userId}")
