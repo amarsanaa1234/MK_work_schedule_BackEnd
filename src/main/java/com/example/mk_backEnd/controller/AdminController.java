@@ -90,6 +90,14 @@ public class AdminController {
         return ResponseEntity.ok(adminService.updateJobAd(adminId, jobAdId, request));
     }
 
+    @DeleteMapping("/job-ads/{jobAdId}")
+    public ResponseEntity<Void> deleteJobAd(
+            Authentication authentication, @PathVariable String adminId, @PathVariable String jobAdId) {
+        verifySelf(authentication, adminId);
+        adminService.deleteJobAd(adminId, jobAdId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/job-ads/{jobAdId}/hours")
     public ResponseEntity<List<EmployeeHoursResponse>> getJobHours(
             Authentication authentication, @PathVariable String adminId, @PathVariable String jobAdId) {

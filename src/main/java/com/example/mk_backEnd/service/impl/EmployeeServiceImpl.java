@@ -2,11 +2,15 @@ package com.example.mk_backEnd.service.impl;
 
 import com.example.mk_backEnd.domain.Address;
 import com.example.mk_backEnd.domain.Assignment;
+import com.example.mk_backEnd.domain.AssignmentRole;
 import com.example.mk_backEnd.domain.Employee;
 import com.example.mk_backEnd.domain.JobAd;
+import com.example.mk_backEnd.domain.JobAdCrew;
 import com.example.mk_backEnd.domain.WorkHourEntry;
+import com.example.mk_backEnd.dto.EmployeeHoursResponse;
 import com.example.mk_backEnd.dto.EmployeeSummaryResponse;
 import com.example.mk_backEnd.dto.JobAdSummaryResponse;
+import com.example.mk_backEnd.dto.SubmitLeadHoursRequest;
 import com.example.mk_backEnd.dto.WorkHourEntrySummaryResponse;
 import com.example.mk_backEnd.exception.BadRequestException;
 import com.example.mk_backEnd.exception.ResourceNotFoundException;
@@ -16,12 +20,19 @@ import com.example.mk_backEnd.repository.JobAdCrewRepository;
 import com.example.mk_backEnd.repository.JobAdRepository;
 import com.example.mk_backEnd.repository.WorkHourEntryRepository;
 import com.example.mk_backEnd.service.EmployeeService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -84,12 +95,106 @@ public class EmployeeServiceImpl implements EmployeeService {
                 jobAd.getRequiredCount(),
                 leader,
                 crew,
-                jobAd.getCreatedAt());
+                jobAd.getCreatedAt(),
+                hoursLogged(jobAd));
     }
 
     private EmployeeSummaryResponse toEmployeeSummary(Employee employee) {
         return new EmployeeSummaryResponse(
                 employee.getId(), employee.getFullName(), "Employee", employee.getPhone(), employee.getPhotoUrl());
+    }
+
+    private boolean hoursLogged(JobAd jobAd) {
+        return jobAd.getLeadHoursSubmittedAt() != null
+                || assignmentRepository.findByJobAdId(jobAd.getId()).stream().anyMatch(a -> a.getWorkHourEntry() != null);
+    }
+
+    /** Leader first, then the rest of the crew — the same order the admin's hours screen uses. */
+    private List<Employee> jobPeople(JobAd jobAd) {
+        List<Employee> people = new ArrayList<>();
+        if (jobAd.getLeader() != null) {
+            people.add(jobAd.getLeader());
+        }
+        for (JobAdCrew crew : jobAdCrewRepository.findByJobAdId(jobAd.getId())) {
+            if (jobAd.getLeader() == null || !crew.getEmployee().getId().equals(jobAd.getLeader().getId())) {
+                people.add(crew.getEmployee());
+            }
+        }
+        return people;
+    }
+
+    private JobAd findJobLedBy(String employeeId, String jobAdId) {
+        findEmployee(employeeId);
+        JobAd jobAd = findJobAd(jobAdId);
+        if (jobAd.getLeader() == null || !jobAd.getLeader().getId().equals(employeeId)) {
+            throw new AccessDeniedException("Зөвхөн энэ ажлын ахлагч цаг оруулах боломжтой.");
+        }
+        return jobAd;
+    }
+
+    @Override
+    public List<EmployeeHoursResponse> getJobHoursAsLead(String employeeId, String jobAdId) {
+        JobAd jobAd = findJobLedBy(employeeId, jobAdId);
+        List<Assignment> assignments = assignmentRepository.findByJobAdId(jobAdId);
+        return jobPeople(jobAd).stream()
+                .map(employee -> {
+                    Double hours = assignments.stream()
+                            .filter(a -> a.getEmployee().getId().equals(employee.getId()))
+                            .findFirst()
+                            .map(Assignment::getWorkHourEntry)
+                            .map(WorkHourEntry::getHoursWorked)
+                            .orElse(null);
+                    return new EmployeeHoursResponse(employee.getId(), employee.getFullName(), employee.getPhotoUrl(), hours);
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void submitHoursAsLead(String employeeId, String jobAdId, List<SubmitLeadHoursRequest.Entry> entries) {
+        JobAd jobAd = findJobLedBy(employeeId, jobAdId);
+        if (jobAd.getWorkDate().isAfter(LocalDate.now())) {
+            throw new BadRequestException("Ажлын өдөр болоогүй байхад цаг оруулах боломжгүй.");
+        }
+        if (hoursLogged(jobAd)) {
+            throw new BadRequestException("Энэ ажлын цаг аль хэдийн бүртгэгдсэн байна. Засах шаардлагатай бол админд хандана уу.");
+        }
+
+        Map<String, Employee> people = new LinkedHashMap<>();
+        jobPeople(jobAd).forEach(e -> people.put(e.getId(), e));
+        Map<String, Double> hoursById = new HashMap<>();
+        for (SubmitLeadHoursRequest.Entry entry : entries) {
+            if (!people.containsKey(entry.getEmployeeId())) {
+                throw new BadRequestException("Энэ ажилтан уг ажилд ороогүй байна: " + entry.getEmployeeId());
+            }
+            hoursById.put(entry.getEmployeeId(), entry.getHoursWorked());
+        }
+        if (!hoursById.keySet().equals(people.keySet())) {
+            throw new BadRequestException("Багийн бүх гишүүний цагийг оруулна уу.");
+        }
+
+        List<Assignment> assignments = assignmentRepository.findByJobAdId(jobAdId);
+        for (Employee employee : people.values()) {
+            Assignment assignment = assignments.stream()
+                    .filter(a -> a.getEmployee().getId().equals(employee.getId()))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        Assignment created = new Assignment();
+                        created.setJobAd(jobAd);
+                        created.setEmployee(employee);
+                        created.setRole(employee.getId().equals(employeeId) ? AssignmentRole.LEAD : AssignmentRole.WORKER);
+                        return assignmentRepository.save(created);
+                    });
+
+            WorkHourEntry entry = new WorkHourEntry();
+            entry.setAssignment(assignment);
+            entry.setWorkDate(jobAd.getWorkDate());
+            entry.setHoursWorked(hoursById.get(employee.getId()));
+            workHourEntryRepository.save(entry);
+        }
+
+        jobAd.setLeadHoursSubmittedAt(LocalDateTime.now());
+        jobAdRepository.save(jobAd);
     }
 
     @Override

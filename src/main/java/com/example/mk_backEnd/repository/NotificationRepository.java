@@ -10,4 +10,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
     List<Notification> findByRecipientIdOrderByCreatedAtDesc(String employeeId);
 
     List<Notification> findByRecipientIdAndReadFalse(String employeeId);
+
+    /** Cleans up a job post's notifications before the job itself is deleted. */
+    void deleteByJobAdId(String jobAdId);
 }

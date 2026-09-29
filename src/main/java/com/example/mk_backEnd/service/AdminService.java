@@ -21,6 +21,9 @@ public interface AdminService {
     /** Updates an existing job post's fields, leader, and flat crew list. */
     JobAdSummaryResponse updateJobAd(String adminId, String jobAdId, CreateJobAdRequest request);
 
+    /** Deletes a job post and everything hanging off it (crew, assignments, hours, notifications). */
+    void deleteJobAd(String adminId, String jobAdId);
+
     /** Every crew member (leader included) on a job post, with hours logged so far, if any. */
     List<EmployeeHoursResponse> getJobHours(String adminId, String jobAdId);
 

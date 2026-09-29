@@ -31,4 +31,6 @@ public class JobAdSummaryResponse {
     private EmployeeSummaryResponse leader;
     private List<EmployeeSummaryResponse> crew;
     private LocalDateTime createdAt;
+    /** True once any hours have been logged for this job, by an admin or by the lead. */
+    private boolean hoursLogged;
 }

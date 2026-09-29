@@ -76,6 +76,13 @@ public class JobAd {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * When the job's lead submitted the crew's hours from the app. A lead gets exactly one
+     * submission; admins can still review and edit the hours afterwards.
+     */
+    @Column(name = "lead_hours_submitted_at")
+    private LocalDateTime leadHoursSubmittedAt;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {

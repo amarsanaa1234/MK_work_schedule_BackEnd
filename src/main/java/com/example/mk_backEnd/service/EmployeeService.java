@@ -3,8 +3,10 @@ package com.example.mk_backEnd.service;
 import com.example.mk_backEnd.domain.Address;
 import com.example.mk_backEnd.domain.Assignment;
 import com.example.mk_backEnd.domain.JobAd;
+import com.example.mk_backEnd.dto.EmployeeHoursResponse;
 import com.example.mk_backEnd.dto.EmployeeSummaryResponse;
 import com.example.mk_backEnd.dto.JobAdSummaryResponse;
+import com.example.mk_backEnd.dto.SubmitLeadHoursRequest;
 import com.example.mk_backEnd.dto.WorkHourEntrySummaryResponse;
 
 import java.time.LocalDate;
@@ -28,4 +30,10 @@ public interface EmployeeService {
 
     /** The employee's own logged hours over a date range, for their "My timesheet" screen. */
     List<WorkHourEntrySummaryResponse> getMyWorkHours(String employeeId, LocalDate from, LocalDate to);
+
+    /** Everyone on a job the employee leads, with any hours already logged. */
+    List<EmployeeHoursResponse> getJobHoursAsLead(String employeeId, String jobAdId);
+
+    /** The lead's one-time submission of the whole crew's hours; admins can edit afterwards. */
+    void submitHoursAsLead(String employeeId, String jobAdId, List<SubmitLeadHoursRequest.Entry> entries);
 }

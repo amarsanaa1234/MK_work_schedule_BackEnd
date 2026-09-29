@@ -36,6 +36,7 @@ public class AdminServiceImpl implements AdminService {
     private final NotificationService notificationService;
     private final PayPeriodPaymentRepository payPeriodPaymentRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
     public AdminServiceImpl(AdminRepository adminRepository,
                              EmployeeRepository employeeRepository,
@@ -46,7 +47,8 @@ public class AdminServiceImpl implements AdminService {
                              ActivityLogService activityLogService,
                              NotificationService notificationService,
                              PayPeriodPaymentRepository payPeriodPaymentRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             NotificationRepository notificationRepository) {
         this.adminRepository = adminRepository;
         this.employeeRepository = employeeRepository;
         this.jobAdRepository = jobAdRepository;
@@ -57,6 +59,7 @@ public class AdminServiceImpl implements AdminService {
         this.notificationService = notificationService;
         this.payPeriodPaymentRepository = payPeriodPaymentRepository;
         this.userRepository = userRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     @Override
@@ -163,6 +166,22 @@ public class AdminServiceImpl implements AdminService {
             notificationService.notifyCrew(saved, "Job updated: " + saved.getTitle());
         }
         return toSummary(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteJobAd(String adminId, String jobAdId) {
+        Admin admin = findAdmin(adminId);
+        JobAd jobAd = findJobAd(jobAdId);
+        if (!jobWorkspaceId(jobAd).equals(admin.getWorkspace().getId())) {
+            throw new BadRequestException("Энэ ажлын зар танай байгууллагад харьяалагдахгүй байна.");
+        }
+
+        // Notifications aren't cascaded from JobAd, so they're cleared explicitly; crew,
+        // assignments and their work-hour entries cascade with the job itself.
+        notificationRepository.deleteByJobAdId(jobAdId);
+        activityLogService.log(adminId, "DELETE_JOB_AD:" + jobAdId, null);
+        jobAdRepository.delete(jobAd);
     }
 
     @Override
@@ -346,12 +365,18 @@ public class AdminServiceImpl implements AdminService {
                 jobAd.getRequiredCount(),
                 leader,
                 crew,
-                jobAd.getCreatedAt());
+                jobAd.getCreatedAt(),
+                hoursLogged(jobAd));
     }
 
     private EmployeeSummaryResponse toEmployeeSummary(Employee employee) {
         return new EmployeeSummaryResponse(
                 employee.getId(), employee.getFullName(), "Employee", employee.getPhone(), employee.getPhotoUrl());
+    }
+
+    private boolean hoursLogged(JobAd jobAd) {
+        return jobAd.getLeadHoursSubmittedAt() != null
+                || assignmentRepository.findByJobAdId(jobAd.getId()).stream().anyMatch(a -> a.getWorkHourEntry() != null);
     }
 
     @Override

@@ -3,14 +3,18 @@ package com.example.mk_backEnd.controller;
 import com.example.mk_backEnd.domain.Address;
 import com.example.mk_backEnd.domain.Assignment;
 import com.example.mk_backEnd.domain.JobAd;
+import com.example.mk_backEnd.dto.EmployeeHoursResponse;
 import com.example.mk_backEnd.dto.EmployeeOverviewResponse;
 import com.example.mk_backEnd.dto.JobAdSummaryResponse;
 import com.example.mk_backEnd.dto.NotificationResponse;
+import com.example.mk_backEnd.dto.SubmitLeadHoursRequest;
 import com.example.mk_backEnd.dto.WorkHourEntrySummaryResponse;
+import jakarta.validation.Valid;
 import com.example.mk_backEnd.service.AdminService;
 import com.example.mk_backEnd.service.EmployeeService;
 import com.example.mk_backEnd.service.NotificationService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -71,6 +75,24 @@ public class EmployeeController {
         verifySelf(authentication, employeeId);
         double km = employeeService.distanceFromHome(employeeId, jobAdId);
         return ResponseEntity.ok(Map.of("distanceKm", km));
+    }
+
+    @GetMapping("/job-ads/{jobAdId}/hours")
+    public ResponseEntity<List<EmployeeHoursResponse>> getJobHoursAsLead(Authentication authentication,
+                                                                         @PathVariable String employeeId,
+                                                                         @PathVariable String jobAdId) {
+        verifySelf(authentication, employeeId);
+        return ResponseEntity.ok(employeeService.getJobHoursAsLead(employeeId, jobAdId));
+    }
+
+    @PostMapping("/job-ads/{jobAdId}/hours")
+    public ResponseEntity<Void> submitHoursAsLead(Authentication authentication,
+                                                  @PathVariable String employeeId,
+                                                  @PathVariable String jobAdId,
+                                                  @Valid @RequestBody SubmitLeadHoursRequest request) {
+        verifySelf(authentication, employeeId);
+        employeeService.submitHoursAsLead(employeeId, jobAdId, request.getEntries());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/schedule")
